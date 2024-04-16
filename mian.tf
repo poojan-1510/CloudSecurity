@@ -1,66 +1,42 @@
-provider "aws" {
-  region = "us-east-1" # Modify according to your region
+provider "azurerm" {
+  features {}
 }
 
-resource "aws_iam_policy" "example_policy" {
-  name        = "example-policy"
-  description = "Example policy for Terraform"
-  policy      = <<EOF
-{
-  "Version": "2012-10-17",
-  "Statement": [
-    {
-      "Effect": "Allow",
-      "Action": "ec2:*",
-      "Resource": "*"
-    }
-  ]
-}
-EOF
-}
-
-resource "aws_iam_role" "example_role" {
-  name = "example-role"
-  
-  assume_role_policy = jsonencode({
-    "Version": "2012-10-17",
-    "Statement": [
-      {
-        "Effect": "Allow",
-        "Principal": {
-          "Service": "ec2.amazonaws.com"
-        },
-        "Action": "sts:AssumeRole"
-      }
+resource "azurerm_role_definition" "role_definition_${random_integer}" {
+  name = "role-definition-${random_integer}"
+  scope = "/"
+  permissions {
+    actions = [
+      "*"
     ]
-  })
+    data_actions = [
+      "*"
+    ]
+    not_data_actions = []
+  }
 }
 
-resource "aws_iam_role_policy_attachment" "example_attachment_${random_integer}" {
-  role       = aws_iam_role.example_role.name
-  policy_arn = aws_iam_policy.example_policy.arn
+resource "azurerm_role_assignment" "role_assignment_${random_integer}" {
+  name                = "role-assignment-${random_integer}"
+  scope               = "/"
+  role_definition_id  = azurerm_role_definition.example_role_definition_${random_integer}.id
+  principal_id        = "principal_id_here"  # Replace with the principal ID
 }
 
-resource "aws_iam_role_policy_attachment" "example_attachment_${random_integer}" {
-  role       = aws_iam_role.example_role.name
-  policy_arn = aws_iam_policy.example_policy.arn
-  depends_on = [aws_instance.example_instance]
-}
+resource "azurerm_virtual_machine" "virtual_machine_${random_integer}" {
+  count                 = 2
+  name                  = vm-${random_integer}-${count.index}"
+  location              = "East US"
+  resource_group_name   = "resource-group-${random_integer}"
+  vm_size               = "Standard_DS1_v2"
 
-resource "aws_iam_role_policy_attachment" "example_attachment_${random_integer}" {
-  role       = aws_iam_role.example_role.name
-  policy_arn = aws_iam_policy.example_policy.arn
-  depends_on = [aws_instance.example_instance]
-}
+  os_profile {
+    computer_name  = "vm-${random_integer}-${count.index}"
+    admin_username = "adminuser"
+    admin_password = "Password1234!"  
+  }
 
-resource "aws_instance" "example_instance" {
-  count         = 2
-  ami           = "ami-0c55b159cbfafe1f0"
-  instance_type = "t2.micro"
-
-  iam_instance_profile = aws_iam_role.example_role.name
-  
   tags = {
-    Name = "example-instance-${count.index}"
+    environment = "production"
   }
 }
